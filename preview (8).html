@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>밤길 안전 귀가 서비스 4.0 | Neon Guardian</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#dbe3ef;
+      --brand:#111827; --soft:#f1f5f9; --safe:#16a34a; --good:#2563eb; --mid:#d97706; --warn:#dc2626;
+      --shadow:0 12px 32px rgba(15,23,42,.08); --radius:22px;
+    }
+    [data-theme="dark"]{--bg:#0b1120;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--line:#263244;--brand:#e5e7eb;--soft:#172033;--shadow:0 16px 40px rgba(0,0,0,.25)}
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
+    body.large{font-size:18px}.hidden{display:none!important}.small{font-size:13px}.tiny{font-size:12px}.muted{color:var(--muted)}
+    button,input,select,textarea{font:inherit} button{border:0;border-radius:14px;padding:12px 15px;background:var(--brand);color:var(--card);cursor:pointer;font-weight:800} button:disabled{opacity:.5;cursor:not-allowed}
+    button.secondary{background:var(--card);color:var(--ink);border:1px solid var(--line)} button.danger{background:var(--warn);color:white} button.safe{background:var(--safe);color:white} button.warn{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px 13px;background:var(--card);color:var(--ink)} textarea{min-height:110px;resize:vertical}
+    .app{min-height:100vh}.auth{max-width:1120px;margin:0 auto;padding:26px}.auth-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px}.shell{display:grid;grid-template-columns:288px 1fr;min-height:100vh}
+    .sidebar{background:var(--card);border-right:1px solid var(--line);padding:20px;position:sticky;top:0;height:100vh;overflow:auto}.main{min-width:0}.topbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:16px 22px}.page{padding:22px;max-width:1440px;margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}.hero{background:linear-gradient(135deg,var(--card),var(--soft));border:1px solid var(--line);border-radius:28px;padding:30px;box-shadow:var(--shadow)}
+    .row{display:flex;align-items:center;gap:10px}.between{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.stack>*+*{margin-top:14px}.grid{display:grid;gap:14px}.grid2{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:repeat(3,1fr)}.grid4{grid-template-columns:repeat(4,1fr)}.route-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:18px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .logo{width:52px;height:52px;border-radius:18px;background:var(--brand);color:var(--card);display:grid;place-items:center;font-weight:900;font-size:22px}.nav-btn{display:block;width:100%;margin:7px 0;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line)}.nav-btn.active{background:var(--brand);color:var(--card)}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:12px;font-weight:800}.badge.safe{background:#ecfdf5;color:#15803d;border-color:#bbf7d0}.badge.good{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}.badge.mid{background:#fffbeb;color:#b45309;border-color:#fde68a}.badge.warn{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+    .notice{border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:18px;padding:13px;line-height:1.6}.ok{border:1px solid #86efac;background:#f0fdf4;color:#166534;border-radius:18px;padding:13px}.dangerbox{border:1px solid #fecaca;background:#fef2f2;color:#991b1b;border-radius:18px;padding:13px;line-height:1.6}.info{border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;border-radius:18px;padding:13px;line-height:1.6}
+    .stat{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}.stat strong{font-size:28px;display:block;margin-top:5px}.mini{border:1px solid var(--line);border-radius:18px;padding:13px;background:var(--card);line-height:1.55}.mini.click{cursor:pointer}.mini.click:hover{outline:2px solid #93c5fd}.progress{height:10px;border-radius:999px;background:var(--soft);overflow:hidden}.progress>span{display:block;height:100%;background:var(--brand);width:0%}
+    #map{height:520px;border-radius:24px;overflow:hidden;border:1px solid var(--line);background:var(--soft)}.route-card{cursor:pointer;border:1px solid var(--line);border-radius:20px;padding:14px;background:var(--card)}.route-card.active{border-color:var(--brand);outline:3px solid color-mix(in srgb,var(--brand) 16%,transparent)}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--soft);padding:6px;border-radius:16px}.tabs button{background:transparent;color:var(--muted);padding:9px}.tabs button.active{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .safe-panel{border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;border-radius:20px;padding:14px}.signal{display:flex;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--card)}
+    .bottom-bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:900;background:var(--card);border-top:1px solid var(--line);padding:10px;gap:8px}.bottom-bar button{flex:1}.chat-fab{position:fixed;right:22px;bottom:24px;width:62px;height:62px;border-radius:999px;z-index:950;box-shadow:0 16px 36px rgba(15,23,42,.22)}.chat{position:fixed;right:22px;bottom:98px;width:min(390px,calc(100vw - 28px));height:540px;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 18px 52px rgba(15,23,42,.24);z-index:940;display:none;overflow:hidden}.chat.open{display:flex;flex-direction:column}.chat-head{background:var(--brand);color:var(--card);padding:14px 16px}.chat-body{flex:1;overflow:auto;padding:14px;background:var(--soft)}.msg{max-width:86%;padding:11px 13px;border-radius:16px;margin-bottom:10px;white-space:pre-wrap;line-height:1.48}.msg.ai{background:var(--card);border:1px solid var(--line);border-top-left-radius:5px}.msg.me{margin-left:auto;background:var(--brand);color:var(--card);border-top-right-radius:5px}.quick{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--soft)}.quick button{padding:7px 9px;border-radius:999px;background:var(--card);color:var(--ink);border:1px solid var(--line);font-size:12px}.chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+    .hold{height:180px;width:180px;border-radius:999px;background:var(--warn);color:white;font-size:32px;display:grid;place-items:center;margin:16px auto;position:relative;overflow:hidden}.hold::after{content:'';position:absolute;left:0;bottom:0;width:100%;height:var(--p,0%);background:rgba(255,255,255,.22);transition:height .08s}.hold span{position:relative;z-index:1}.step{border-left:4px solid var(--line);padding:10px 12px;background:var(--card);border-radius:12px;margin-bottom:8px}.step.active{border-left-color:var(--safe);background:#f0fdf4;color:#166534}.facility-dot{font-size:16px;line-height:1}.kbd{border:1px solid var(--line);border-radius:7px;padding:2px 6px;background:var(--soft);font-size:12px}.source-table{width:100%;border-collapse:collapse}.source-table th,.source-table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.leaflet-container{font-family:inherit}
+    @media(max-width:1050px){.shell,.auth-grid,.route-grid,.two-col,.grid4,.grid3,.grid2{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}.bottom-bar{display:flex}.page{padding-bottom:86px}#map{height:390px}.chat-fab{bottom:78px}.chat{bottom:150px}.topbar .row.badges{display:none}}
+    @media(max-width:640px){.auth,.page{padding:14px}.hero{padding:20px}.card{padding:15px}.topbar{padding:12px 14px}.tabs{grid-template-columns:1fr}.hold{width:150px;height:150px}.stat strong{font-size:23px}}
+  
+
+    /* ===== NEON GUARDIAN 4.0 redesign layer ===== */
+    :root{
+      --bg:#eef3ff;
+      --card:rgba(255,255,255,.86);
+      --ink:#101828;
+      --muted:#667085;
+      --line:rgba(68,76,231,.14);
+      --brand:#2457ff;
+      --brand2:#7c3aed;
+      --accent:#06b6d4;
+      --soft:rgba(255,255,255,.58);
+      --safe:#12b76a;
+      --good:#2e90fa;
+      --mid:#f79009;
+      --warn:#f04438;
+      --shadow:0 22px 60px rgba(36,87,255,.14);
+      --radius:26px;
+    }
+    [data-theme="dark"]{
+      --bg:#070b1a;
+      --card:rgba(15,23,42,.86);
+      --ink:#f8fafc;
+      --muted:#a5b4fc;
+      --line:rgba(148,163,184,.20);
+      --brand:#8b5cf6;
+      --brand2:#22d3ee;
+      --accent:#38bdf8;
+      --soft:rgba(15,23,42,.62);
+      --shadow:0 22px 70px rgba(0,0,0,.42);
+    }
+    body{
+      background:
+        radial-gradient(circle at 8% 3%, rgba(34,211,238,.35), transparent 30%),
+        radial-gradient(circle at 92% 0%, rgba(124,58,237,.28), transparent 34%),
+        linear-gradient(180deg,#f8fbff 0%,var(--bg) 58%,#f7f8ff 100%);
+      letter-spacing:-.01em;
+    }
+    [data-theme="dark"] body,
+    html[data-theme="dark"] body{
+      background:
+        radial-gradient(circle at 9% 4%, rgba(34,211,238,.20), transparent 26%),
+        radial-gradient(circle at 90% 0%, rgba(139,92,246,.25), transparent 32%),
+        linear-gradient(180deg,#070b1a 0%,#0b1120 100%);
+    }
+    .auth,.page{max-width:1480px;}
+    .shell{grid-template-columns:310px 1fr;}
+    .sidebar,.topbar,.card,.hero,.stat,.mini,.route-card,.chat{
+      backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);
+      box-shadow:var(--shadow);
+    }
+    .sidebar{
+      border-right:1px solid rgba(36,87,255,.12);
+      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.72));
+    }
+    [data-theme="dark"] .sidebar{background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(15,23,42,.66));}
+    .topbar{background:rgba(255,255,255,.74);}
+    [data-theme="dark"] .topbar{background:rgba(7,11,26,.76);}
+    .hero{
+      position:relative;
+      overflow:hidden;
+      background:
+        linear-gradient(135deg,rgba(255,255,255,.95),rgba(236,244,255,.78)),
+        radial-gradient(circle at 75% 18%, rgba(36,87,255,.16), transparent 24%);
+    }
+    [data-theme="dark"] .hero{background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(23,30,54,.74));}
+    .hero::after{
+      content:'SAFEWAY';
+      position:absolute;
+      right:-12px;bottom:-28px;
+      font-size:96px;
+      font-weight:900;
+      letter-spacing:-.08em;
+      color:rgba(36,87,255,.055);
+      pointer-events:none;
+    }
+    .logo{
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      box-shadow:0 16px 34px rgba(36,87,255,.26);
+    }
+    button{
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      color:white;
+      box-shadow:0 12px 26px rgba(36,87,255,.18);
+      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease;
+    }
+    button:hover{transform:translateY(-1px);box-shadow:0 16px 32px rgba(36,87,255,.24);}
+    button.secondary{background:rgba(255,255,255,.72);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+    [data-theme="dark"] button.secondary{background:rgba(15,23,42,.74);color:var(--ink)}
+    .nav-btn{border-radius:18px;padding:13px 14px;font-weight:900;}
+    .nav-btn.active{background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 14px 30px rgba(36,87,255,.24)}
+    .badge{border:1px solid rgba(36,87,255,.16);}
+    .card,.stat,.mini,.route-card{border:1px solid rgba(36,87,255,.12)}
+    .stat strong{background:linear-gradient(135deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .notice{border-color:rgba(247,144,9,.25);background:rgba(255,250,235,.82)}
+    .info,.safe-panel{border-color:rgba(46,144,250,.25);background:rgba(239,248,255,.82)}
+    [data-theme="dark"] .notice{background:rgba(120,53,15,.25);color:#fed7aa}
+    [data-theme="dark"] .info,[data-theme="dark"] .safe-panel{background:rgba(30,64,175,.18);color:#bfdbfe}
+    #map{height:560px;border-radius:30px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 22px 54px rgba(36,87,255,.12);}
+    .route-card.active{outline:4px solid rgba(36,87,255,.18);border-color:rgba(36,87,255,.44)}
+    .hold{background:radial-gradient(circle at 50% 30%,#fb7185,#ef4444 48%,#991b1b);box-shadow:0 24px 70px rgba(240,68,56,.32)}
+    .chat-fab{background:linear-gradient(135deg,var(--brand),var(--accent));}
+    .chat-head{background:linear-gradient(135deg,var(--brand),var(--brand2));}
+    .bottom-bar{backdrop-filter:blur(18px);background:rgba(255,255,255,.84)}
+    [data-theme="dark"] .bottom-bar{background:rgba(15,23,42,.82)}
+    .source-table th{color:var(--brand);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+    @media(max-width:1050px){.shell{grid-template-columns:1fr}.sidebar{height:auto}.topbar{top:0}.page{padding-bottom:96px}#map{height:430px}}
+
+
+    /* ===== NEON GUARDIAN 4.0: premium cinematic redesign ===== */
+    :root{
+      --bg:#070a13;
+      --card:rgba(10,14,28,.72);
+      --ink:#eef4ff;
+      --muted:#9aa7c7;
+      --line:rgba(125,211,252,.18);
+      --brand:#8b5cf6;
+      --brand2:#06b6d4;
+      --accent:#22c55e;
+      --soft:rgba(15,23,42,.58);
+      --safe:#22c55e;
+      --good:#38bdf8;
+      --mid:#f59e0b;
+      --warn:#fb3b5c;
+      --shadow:0 26px 80px rgba(0,0,0,.38);
+      --radius:28px;
+      --glass:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.045));
+      --stroke:linear-gradient(135deg,rgba(34,211,238,.55),rgba(139,92,246,.22),rgba(34,197,94,.28));
+    }
+    html[data-theme="light"]{
+      --bg:#edf5ff;
+      --card:rgba(255,255,255,.78);
+      --ink:#0b1020;
+      --muted:#526079;
+      --line:rgba(51,65,85,.12);
+      --brand:#2457ff;
+      --brand2:#7c3aed;
+      --accent:#0891b2;
+      --soft:rgba(255,255,255,.62);
+      --shadow:0 24px 70px rgba(36,87,255,.14);
+      --glass:linear-gradient(145deg,rgba(255,255,255,.92),rgba(255,255,255,.58));
+    }
+    html[data-theme="dark"]{
+      --bg:#070a13;
+      --card:rgba(10,14,28,.72);
+      --ink:#eef4ff;
+      --muted:#9aa7c7;
+      --line:rgba(125,211,252,.18);
+      --brand:#8b5cf6;
+      --brand2:#06b6d4;
+      --accent:#22c55e;
+      --soft:rgba(15,23,42,.58);
+      --shadow:0 26px 80px rgba(0,0,0,.38);
+      --glass:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.045));
+    }
+    *{scrollbar-width:thin;scrollbar-color:rgba(34,211,238,.55) transparent}
+    ::selection{background:rgba(34,211,238,.35);color:var(--ink)}
+    body{
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 10% -4%, rgba(34,211,238,.34), transparent 32%),
+        radial-gradient(circle at 82% 2%, rgba(139,92,246,.34), transparent 28%),
+        radial-gradient(circle at 48% 100%, rgba(34,197,94,.14), transparent 36%),
+        linear-gradient(180deg,#050712 0%, var(--bg) 45%, #070b18 100%) !important;
+      color:var(--ink);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      overflow-x:hidden;
+    }
+    body::before{
+      content:'';
+      position:fixed;inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size:42px 42px;
+      mask-image:linear-gradient(to bottom,rgba(0,0,0,.85),rgba(0,0,0,.12));
+      pointer-events:none;z-index:-2;
+    }
+    body::after{
+      content:'';
+      position:fixed;inset:-35%;
+      background:conic-gradient(from 210deg, transparent, rgba(34,211,238,.09), transparent, rgba(139,92,246,.12), transparent);
+      animation:guardian-spin 24s linear infinite;
+      pointer-events:none;z-index:-3;
+    }
+    @keyframes guardian-spin{to{transform:rotate(360deg)}}
+    .shell{grid-template-columns:326px minmax(0,1fr)}
+    .sidebar{
+      position:sticky;top:0;height:100vh;
+      padding:24px 18px;
+      background:linear-gradient(180deg,rgba(5,8,20,.86),rgba(12,18,38,.62)) !important;
+      border-right:1px solid rgba(125,211,252,.14);
+      box-shadow:24px 0 80px rgba(0,0,0,.25);
+    }
+    html[data-theme="light"] .sidebar{background:linear-gradient(180deg,rgba(255,255,255,.84),rgba(240,249,255,.66)) !important;}
+    .main{position:relative;}
+    .topbar{
+      background:rgba(7,10,19,.66) !important;
+      backdrop-filter:blur(22px) saturate(145%);
+      -webkit-backdrop-filter:blur(22px) saturate(145%);
+      border-bottom:1px solid rgba(125,211,252,.12);
+      box-shadow:0 16px 50px rgba(0,0,0,.22);
+    }
+    html[data-theme="light"] .topbar{background:rgba(255,255,255,.62) !important;}
+    .page{max-width:1520px;padding:26px;}
+    .auth{max-width:1240px;padding:36px 24px;}
+    .card,.stat,.mini,.route-card,.hero,.chat{
+      position:relative;
+      background:var(--glass) !important;
+      border:1px solid var(--line) !important;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(24px) saturate(150%);
+      -webkit-backdrop-filter:blur(24px) saturate(150%);
+    }
+    .card::before,.stat::before,.route-card::before,.hero::before{
+      content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;
+      background:var(--stroke);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      opacity:.38;pointer-events:none;
+    }
+    .card:hover,.route-card:hover,.mini:hover{transform:translateY(-1px);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+    .hero{min-height:440px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+    .hero::after{
+      content:'GUARDIAN' !important;
+      right:-16px;bottom:-46px;
+      font-size:132px !important;
+      letter-spacing:-.09em;
+      background:linear-gradient(90deg,rgba(34,211,238,.18),rgba(139,92,246,.08));
+      -webkit-background-clip:text;background-clip:text;color:transparent !important;
+    }
+    .hero h1{
+      margin:8px 0 12px;
+      font-size:clamp(42px,6vw,76px);
+      line-height:.96;
+      letter-spacing:-.07em;
+      background:linear-gradient(135deg,#fff 0%,#9ae6ff 44%,#c4b5fd 72%,#bbf7d0 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      text-shadow:0 0 44px rgba(34,211,238,.14);
+    }
+    html[data-theme="light"] .hero h1{background:linear-gradient(135deg,#0b1020,#2457ff,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .logo{
+      border-radius:20px;
+      background:linear-gradient(135deg,#06b6d4 0%,#8b5cf6 48%,#22c55e 100%) !important;
+      box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 18px 42px rgba(34,211,238,.28),0 0 42px rgba(139,92,246,.22);
+    }
+    h1,h2,h3,b,strong{letter-spacing:-.035em;}
+    .muted{color:var(--muted)!important;}
+    .nav-btn{
+      display:flex;align-items:center;gap:11px;
+      border-radius:18px;
+      margin:8px 0;
+      padding:13px 14px;
+      color:var(--ink)!important;
+      background:rgba(255,255,255,.055)!important;
+      border:1px solid rgba(125,211,252,.12)!important;
+      box-shadow:none!important;
+    }
+    html[data-theme="light"] .nav-btn{background:rgba(255,255,255,.72)!important;}
+    .nav-btn::before{width:30px;height:30px;display:grid;place-items:center;border-radius:12px;background:rgba(34,211,238,.10);color:#67e8f9;}
+    .nav-btn[data-nav="home"]::before{content:'⌂'}
+    .nav-btn[data-nav="route"]::before{content:'⌁'}
+    .nav-btn[data-nav="live"]::before{content:'◉'}
+    .nav-btn[data-nav="guardian"]::before{content:'◈'}
+    .nav-btn[data-nav="sos"]::before{content:'!'}
+    .nav-btn[data-nav="history"]::before{content:'≡'}
+    .nav-btn[data-nav="privacy"]::before{content:'◌'}
+    .nav-btn[data-nav="audit"]::before{content:'✓'}
+    .nav-btn.active{
+      color:white!important;
+      background:linear-gradient(135deg,rgba(34,211,238,.95),rgba(139,92,246,.96))!important;
+      box-shadow:0 18px 46px rgba(34,211,238,.20)!important;
+    }
+    .nav-btn.active::before{background:rgba(255,255,255,.18);color:#fff;}
+    button{
+      border-radius:16px;
+      background:linear-gradient(135deg,#06b6d4 0%,#2457ff 48%,#8b5cf6 100%)!important;
+      color:#fff!important;
+      box-shadow:0 14px 34px rgba(36,87,255,.22),0 0 0 1px rgba(255,255,255,.10) inset;
+      font-weight:900;
+    }
+    button.secondary{
+      background:rgba(255,255,255,.08)!important;
+      color:var(--ink)!important;
+      border:1px solid rgba(125,211,252,.18)!important;
+      box-shadow:none;
+    }
+    html[data-theme="light"] button.secondary{background:rgba(255,255,255,.72)!important;}
+    button.danger,.hold{background:linear-gradient(135deg,#fb7185,#ef4444 48%,#7f1d1d)!important;}
+    button.safe{background:linear-gradient(135deg,#22c55e,#06b6d4)!important;}
+    input,select,textarea{
+      background:rgba(255,255,255,.075)!important;
+      border:1px solid rgba(125,211,252,.18)!important;
+      color:var(--ink)!important;
+      border-radius:16px;
+      outline:none;
+      transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+    }
+    html[data-theme="light"] input,html[data-theme="light"] select,html[data-theme="light"] textarea{background:rgba(255,255,255,.74)!important;}
+    input:focus,select:focus,textarea:focus{border-color:rgba(34,211,238,.70)!important;box-shadow:0 0 0 4px rgba(34,211,238,.12);}
+    .stat{
+      min-height:142px;
+      overflow:hidden;
+    }
+    .stat::after{
+      content:'';position:absolute;right:-30px;top:-30px;width:104px;height:104px;border-radius:999px;
+      background:radial-gradient(circle,rgba(34,211,238,.18),transparent 68%);
+      pointer-events:none;
+    }
+    .stat strong{
+      font-size:clamp(30px,3.2vw,44px);
+      background:linear-gradient(135deg,#67e8f9,#a78bfa,#86efac);
+      -webkit-background-clip:text;background-clip:text;color:transparent!important;
+    }
+    html[data-theme="light"] .stat strong{background:linear-gradient(135deg,#2457ff,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent!important;}
+    .badge{
+      border:1px solid rgba(125,211,252,.20)!important;
+      background:rgba(255,255,255,.075)!important;
+      color:var(--ink)!important;
+      box-shadow:0 0 20px rgba(34,211,238,.07) inset;
+    }
+    .badge.safe{background:rgba(34,197,94,.14)!important;color:#86efac!important;border-color:rgba(34,197,94,.28)!important;}
+    .badge.good{background:rgba(56,189,248,.14)!important;color:#7dd3fc!important;border-color:rgba(56,189,248,.30)!important;}
+    .badge.mid{background:rgba(245,158,11,.15)!important;color:#fcd34d!important;border-color:rgba(245,158,11,.30)!important;}
+    .badge.warn{background:rgba(251,59,92,.15)!important;color:#fda4af!important;border-color:rgba(251,59,92,.35)!important;}
+    .notice,.info,.dangerbox,.ok,.safe-panel{
+      backdrop-filter:blur(16px);
+      border-radius:20px;
+      border-width:1px!important;
+    }
+    .notice{background:rgba(245,158,11,.105)!important;color:#fde68a!important;border-color:rgba(245,158,11,.25)!important;}
+    .info,.safe-panel{background:rgba(34,211,238,.10)!important;color:#bae6fd!important;border-color:rgba(34,211,238,.24)!important;}
+    .dangerbox{background:rgba(251,59,92,.12)!important;color:#fecdd3!important;border-color:rgba(251,59,92,.28)!important;}
+    html[data-theme="light"] .notice{color:#92400e!important;background:rgba(255,251,235,.88)!important;}
+    html[data-theme="light"] .info,html[data-theme="light"] .safe-panel{color:#1e3a8a!important;background:rgba(239,248,255,.86)!important;}
+    html[data-theme="light"] .dangerbox{color:#991b1b!important;background:rgba(254,242,242,.90)!important;}
+    .signal{background:rgba(255,255,255,.065)!important;border:1px solid rgba(125,211,252,.14)!important;border-radius:18px;}
+    .progress{height:12px;background:rgba(255,255,255,.075)!important;box-shadow:inset 0 0 0 1px rgba(125,211,252,.10);}
+    .progress>span{background:linear-gradient(90deg,#22c55e,#06b6d4,#8b5cf6)!important;box-shadow:0 0 24px rgba(34,211,238,.42);}
+    #map{
+      height:590px;
+      border-radius:34px;
+      border:1px solid rgba(125,211,252,.18)!important;
+      box-shadow:0 30px 90px rgba(0,0,0,.30),0 0 0 1px rgba(255,255,255,.08) inset;
+      overflow:hidden;
+    }
+    .leaflet-container{background:#0b1020!important;}
+    html[data-theme="dark"] .leaflet-tile{filter:saturate(1.45) contrast(1.08) brightness(.66) hue-rotate(174deg);}
+    html[data-theme="light"] .leaflet-tile{filter:saturate(1.12) contrast(1.02) brightness(1.02);}
+    .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:rgba(7,10,19,.92)!important;color:#eef4ff!important;border:1px solid rgba(125,211,252,.22);backdrop-filter:blur(14px);}
+    .route-card{overflow:hidden;}
+    .route-card.active{border-color:rgba(34,211,238,.55)!important;outline:4px solid rgba(34,211,238,.14)!important;box-shadow:0 22px 60px rgba(34,211,238,.10)!important;}
+    .mini{background:rgba(255,255,255,.055)!important;border-color:rgba(125,211,252,.12)!important;}
+    html[data-theme="light"] .mini{background:rgba(255,255,255,.76)!important;}
+    .hold{
+      box-shadow:0 28px 90px rgba(251,59,92,.36),0 0 0 10px rgba(251,59,92,.08);
+      border:1px solid rgba(255,255,255,.20);
+    }
+    .chat-fab{
+      background:linear-gradient(135deg,#22d3ee,#8b5cf6)!important;
+      box-shadow:0 22px 60px rgba(34,211,238,.26),0 0 0 8px rgba(34,211,238,.08);
+    }
+    .chat{border-radius:30px;background:rgba(7,10,19,.86)!important;}
+    html[data-theme="light"] .chat{background:rgba(255,255,255,.88)!important;}
+    .chat-head{background:linear-gradient(135deg,#06b6d4,#8b5cf6)!important;}
+    .chat-body,.quick{background:rgba(255,255,255,.04)!important;}
+    html[data-theme="light"] .chat-body,html[data-theme="light"] .quick{background:rgba(241,245,249,.72)!important;}
+    .msg.ai{background:rgba(255,255,255,.075)!important;border-color:rgba(125,211,252,.14)!important;}
+    .msg.me{background:linear-gradient(135deg,#2457ff,#8b5cf6)!important;color:white;}
+    .source-table th,.source-table td{border-color:rgba(125,211,252,.13)!important;}
+    .source-table th{color:#67e8f9!important;}
+    html[data-theme="light"] .source-table th{color:#2457ff!important;}
+    .bottom-bar{background:rgba(7,10,19,.76)!important;border-top:1px solid rgba(125,211,252,.18);backdrop-filter:blur(22px);}
+    html[data-theme="light"] .bottom-bar{background:rgba(255,255,255,.86)!important;}
+    @media(max-width:1050px){.shell{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.page{padding:18px 16px 104px}#map{height:420px}.chat-fab{bottom:84px}.chat{bottom:154px}.hero{min-height:auto}.hero h1{font-size:44px}}
+    @media(max-width:640px){.auth{padding:16px}.card,.hero,.stat,.mini,.route-card{border-radius:22px}.grid4,.grid3,.grid2,.two-col,.route-grid{gap:12px}.hero h1{font-size:38px}.stat{min-height:116px}#map{height:360px}.chat{right:12px;width:calc(100vw - 24px)}}
+
+  </style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<div id="mobileBar" class="bottom-bar hidden">
+  <button id="barHome">집으로</button><button id="barShare" class="secondary">공유</button><button id="barSOS" class="danger">SOS</button>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const STORE_PREFIX='nightsafe_v40_';
+const KEYS={users:STORE_PREFIX+'users',session:STORE_PREFIX+'session',contacts:STORE_PREFIX+'contacts',favorites:STORE_PREFIX+'favorites',history:STORE_PREFIX+'history',consent:STORE_PREFIX+'consent',settings:STORE_PREFIX+'settings',share:STORE_PREFIX+'share',incidents:STORE_PREFIX+'incidents'};
+const HASH_1234='03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
+const DEFAULT_CENTER={lat:36.3504,lon:127.3845,label:'대전광역시청'};
+const SAMPLE_PLACES=[
+  {name:'대전광역시청',lat:36.3504,lon:127.3845},{name:'충남대학교',lat:36.3689,lon:127.3450},{name:'건양대학교 메디컬캠퍼스',lat:36.3042,lon:127.3425},{name:'대전역',lat:36.3322,lon:127.4346},{name:'둔산동',lat:36.3519,lon:127.3785},{name:'유성온천역',lat:36.3537,lon:127.3415}
+];
+const MODE={
+  sidewalk:{label:'인도 우선',icon:'🟢',profiles:['foot','walking'],profile:'foot',speed:1.15,kmh:4.1,surface:'인도 · 횡단보도 · 보행자길',avoid:'차도 주행 안내 제외',strict:true,desc:'보도와 횡단보도 중심의 보행 안전 기준'},
+  foot:{label:'일반 도보',icon:'🚶',profiles:['foot','walking'],profile:'foot',speed:1.25,kmh:4.5,surface:'보행 가능한 길 · 큰길 보행로',avoid:'자동차 전용 차도 제외',strict:true,desc:'일반 보행자 이동 기준'},
+  car:{label:'차도/자동차',icon:'🚗',profiles:['driving','car'],profile:'driving',speed:11.5,kmh:41.4,surface:'차도 · 자동차 도로 · 교차로',avoid:'인도/보행자 전용길 제외',strict:true,desc:'자동차 주행 기준'}
+};
+let state={user:null,tab:'home',map:null,markers:[],routeLines:[],currentLocation:null,locationAccuracy:null,watchId:null,tracking:false,simTimer:null,simIndex:0,loading:false,routeError:'',routes:[],selectedRouteId:null,originText:'',destText:'대전광역시청',mode:'sidewalk',share:{enabled:false,token:null,lastUpdate:null,ack:false},contacts:[],favorites:[],history:[],incidents:[],consent:null,settings:null,chatOpen:false,chat:[{role:'ai',text:'안녕하세요. 저는 안전 판단 엔진입니다. 실제 신고는 112가 우선이고, 이 프로토타입은 경로·위치·보호자 공유 흐름을 검증하는 용도입니다.'}],holdProgress:0,navStepIndex:0};
+function h(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]))}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v))} function load(k,f){try{const r=localStorage.getItem(k);return r?JSON.parse(r):f}catch{return f}}
+function uid(p='id'){return p+'-'+Math.random().toString(36).slice(2,9)+'-'+Date.now().toString(36)}
+function now(){return new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fmtM(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'} function fmtT(s){return Math.max(1,Math.round(s/60))+'분'}
+function tone(score){return score>=82?['낮음','safe']:score>=68?['보통','good']:score>=50?['주의','mid']:['위험','warn']}
+function cryptoOK(){return window.crypto&&crypto.subtle}
+async function sha256(text){if(!cryptoOK()) return 'plain:'+text; const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function init(){
+  if(!load(KEYS.users,null)) save(KEYS.users,[{id:'demo-user',name:'송우석',email:'demo@nightsafe.app',passwordHash:HASH_1234,role:'사용자',createdAt:now()}]);
+  if(!load(KEYS.contacts,null)) save(KEYS.contacts,[{id:uid('c'),name:'홍길동',relation:'보호자',phone:'010-1234-5678',consent:true,priority:1},{id:uid('c'),name:'김보호',relation:'지정 연락처',phone:'010-9876-5432',consent:true,priority:2}]);
+  if(!load(KEYS.favorites,null)) save(KEYS.favorites,[{id:uid('f'),label:'집',address:'대전광역시 유성구 봉명동'},{id:uid('f'),label:'학교',address:'건양대학교 메디컬캠퍼스'},{id:uid('f'),label:'기숙사',address:'충남대학교'},{id:uid('f'),label:'대전역',address:'대전역'}]);
+  if(!load(KEYS.history,null)) save(KEYS.history,[]); if(!load(KEYS.incidents,null)) save(KEYS.incidents,[]);
+  if(!load(KEYS.settings,null)) save(KEYS.settings,{theme:'dark',largeText:false,retentionDays:30,simulatePublicData:true,chatExternal:false});
+  if(!load(KEYS.consent,null)) save(KEYS.consent,{location:false,guardian:false,retention:false,thirdParty:false,updatedAt:null});
+  if(!load(KEYS.share,null)) save(KEYS.share,{enabled:false,token:null,lastUpdate:null,ack:false});
+  state.contacts=load(KEYS.contacts,[]);state.favorites=load(KEYS.favorites,[]);state.history=load(KEYS.history,[]);state.incidents=load(KEYS.incidents,[]);state.consent=load(KEYS.consent,{});state.settings=load(KEYS.settings,{});state.share=load(KEYS.share,{});
+  document.documentElement.dataset.theme=state.settings.theme||'light';document.body.classList.toggle('large',!!state.settings.largeText);
+  const params=new URLSearchParams(location.search); if(params.get('guardian')){state.tab='guardian';state.share.token=params.get('guardian')}
+  const sess=load(KEYS.session,null); if(sess){const u=load(KEYS.users,[]).find(x=>x.id===sess.userId); if(u) state.user=u}
+  render();
+}
+function setState(p){state={...state,...p};render()}
+function authHTML(){return `<div class="auth"><div class="auth-grid"><div class="hero"><div class="row"><div class="logo">S</div><div><div class="small muted">NEON GUARDIAN 4.0</div><h1>밤길 안전 귀가 서비스</h1></div></div><p class="muted" style="line-height:1.8">기존 서비스를 바탕으로 풀기능을 유지하면서, 실제 서비스에 가까운 흐름과 프리미엄 네온 커맨드센터형 디자인으로 다시 구성한 버전입니다.</p><div class="grid grid2"><div class="mini"><b>검증 가능한 안전점수</b><br><span class="small muted">CCTV·가로등·편의점·경찰서·위험지점 카운트 표시</span></div><div class="mini"><b>실시간 위치 추적</b><br><span class="small muted">watchPosition 기반, 이탈거리·정지시간·정확도 표시</span></div><div class="mini"><b>긴급 대응 UX</b><br><span class="small muted">3초 길게 누르기, 112 전화, 보호자 문자 링크</span></div><div class="mini"><b>개인정보/동의</b><br><span class="small muted">동의·보관기간·내보내기·삭제 흐름 제공</span></div></div><div class="notice" style="margin-top:16px"><b>데모 계정</b><br>이메일: demo@nightsafe.app / 비밀번호: 1234<br>비밀번호는 해시로 검증되며, 실제 서비스는 서버 인증으로 교체해야 합니다.</div></div><div class="card"><h2>로그인</h2><div id="authErr" class="dangerbox hidden"></div><form id="loginForm" class="stack"><div><label>이메일</label><input id="loginEmail" value="demo@nightsafe.app" autocomplete="email"></div><div><label>비밀번호</label><input id="loginPw" type="password" value="1234" autocomplete="current-password"></div><button type="submit">로그인</button></form><hr style="border:0;border-top:1px solid var(--line);margin:18px 0"><h3>새 사용자 만들기</h3><form id="signupForm" class="stack"><input id="sgName" placeholder="이름"><input id="sgEmail" placeholder="이메일"><input id="sgPw" type="password" placeholder="비밀번호 8자 이상 권장"><button class="secondary" type="submit">회원가입</button></form></div></div></div>`}
+function appHTML(){return `<div class="shell"><aside class="sidebar"><div class="row"><div class="logo">S</div><div><div class="tiny muted">Night Safety</div><b>NEON GUARDIAN</b></div></div><p class="small muted" style="line-height:1.7">실제 서비스처럼 보이되, 데이터 신뢰도와 한계를 명확히 표시하는 개선형 프로토타입입니다.</p>${nav('home','홈/원터치')}${nav('route','안전 경로')}${nav('live','실시간 추적')}${nav('guardian','보호자 공유')}${nav('sos','SOS')}${nav('history','기록')}${nav('privacy','보안/동의')}${nav('audit','개선 현황')}<div class="card" style="margin-top:16px;padding:14px"><div class="small muted">로그인 사용자</div><b>${h(state.user?.name)}</b><div class="tiny muted">${h(state.user?.email)}</div><button id="logout" class="secondary" style="width:100%;margin-top:10px">로그아웃</button></div></aside><main class="main"><div class="topbar"><div class="between"><div><div class="tiny muted">Premium Full Feature Mode · Safety Intelligence ON</div><b>${pageTitle()}</b></div><div class="row badges"><span class="badge ${state.tracking?'safe':''}">${state.tracking?'GPS 추적중':'GPS 대기'}</span><span class="badge ${state.share.enabled?'good':''}">${state.share.enabled?'공유 ON':'공유 OFF'}</span><span class="badge">${state.modeLabel||MODE[state.mode].icon+' '+MODE[state.mode].label}</span></div></div></div><div class="page">${pageHTML()}</div></main>${chatHTML()}</div>`}
+function nav(k,l){return `<button class="nav-btn ${state.tab===k?'active':''}" data-nav="${k}">${l}</button>`} function pageTitle(){return {home:'홈 / 원터치 귀가',route:'안전 경로 탐색',live:'실시간 위치 추적',guardian:'보호자 공유',sos:'긴급 SOS',history:'귀가 기록',privacy:'보안·동의 관리',audit:'문제점 보완 현황'}[state.tab]||'안전 귀가'}
+function pageHTML(){return {home:homeHTML,route:routeHTML,live:liveHTML,guardian:guardianHTML,sos:sosHTML,history:historyHTML,privacy:privacyHTML,audit:auditHTML}[state.tab]?.()||homeHTML()}
+function homeHTML(){const r=selRoute(), rt=r?routeRisk(r):null; return `<div class="stack"><div class="grid grid4"><div class="stat"><span class="small muted">현재 위험도</span><strong>${rt?rt.risk+'점':'-'}</strong><span class="small muted">${rt?rt.label:'경로 계산 필요'}</span></div><div class="stat"><span class="small muted">위치 정확도</span><strong>${state.locationAccuracy?Math.round(state.locationAccuracy)+'m':'-'}</strong><span class="small muted">실시간 GPS 기준</span></div><div class="stat"><span class="small muted">공유 상태</span><strong>${state.share.enabled?'ON':'OFF'}</strong><span class="small muted">동의한 보호자 ${state.contacts.filter(c=>c.consent).length}명</span></div><div class="stat"><span class="small muted">경로 이탈</span><strong>${deviationText()}</strong><span class="small muted">선택 경로 기준</span></div></div><div class="two-col"><div class="card"><div class="between"><div><h2 style="margin-top:0">원터치 귀가</h2><p class="muted">밤길에서는 입력을 줄이는 것이 중요하므로 즐겨찾기에서 바로 안전 경로를 계산합니다.</p></div><span class="badge good">핵심 흐름 단순화</span></div><div class="grid grid2">${state.favorites.map(f=>`<button class="secondary" data-fav="${h(f.address)}"><b>${h(f.label)}</b><br><span class="small muted">${h(f.address)}</span></button>`).join('')}</div></div><div class="card"><h2 style="margin-top:0">귀가 전 필수 체크</h2>${check('위치정보 동의',state.consent.location)}${check('보호자 공유 동의',state.consent.guardian)}${check('실시간 GPS',state.tracking)}${check('선택 경로',!!r)}<div class="notice" style="margin-top:12px">실제 위급 상황에서는 앱보다 <b>112 신고와 주변 밝은 장소 이동</b>이 우선입니다.</div></div></div><div class="card"><h2 style="margin-top:0">서비스 보완 핵심</h2><div class="grid grid3"><div class="mini"><b>안전근거 숫자화</b><br><span class="small muted">경로 주변 안전시설 수와 위험요소 수를 점수 근거로 보여줌</span></div><div class="mini"><b>과장 표현 제거</b><br><span class="small muted">AI를 “검증 전 안전 판단 엔진”으로 명시</span></div><div class="mini"><b>오해 방지</b><br><span class="small muted">SOS는 실제 전화/문자 연결 버튼과 시뮬레이션 상태를 구분</span></div></div></div></div>`}
+function check(label,on){return `<div class="signal"><span>${label}</span><b>${on?'완료':'필요'}</b></div>`}
+function routeHTML(){const r=selRoute();return `<div class="route-grid"><div class="card"><h2 style="margin-top:0">안전 경로 탐색</h2><div class="notice">인도/도보는 자동차 경로로 자동 대체하지 않습니다. 실패하면 “보행 경로 API 한계”로 표시하고, 비상 직선 안내만 별도 표시합니다.</div><div class="grid grid3" style="margin-top:14px"><div><label>출발지</label><input id="originText" value="${h(state.originText)}" placeholder="비우면 현재 위치 또는 대전시청"></div><div><label>목적지</label><input id="destText" value="${h(state.destText)}" placeholder="예: 대전역"></div><div><label>이동 기준</label><select id="modeSelect">${Object.entries(MODE).map(([k,m])=>`<option value="${k}" ${state.mode===k?'selected':''}>${m.icon} ${m.label}</option>`).join('')}</select></div></div><div class="safe-panel" style="margin-top:12px"><b>${MODE[state.mode].icon} ${MODE[state.mode].label} 고정</b><br><span class="small">대상: ${MODE[state.mode].surface} / 제외: ${MODE[state.mode].avoid} / 예상속도: ${MODE[state.mode].kmh}km/h</span></div><div class="grid grid4" style="margin-top:14px"><button id="findRoute">경로 계산</button><button id="useGPS" class="secondary">현재 위치</button><button id="startTrack" class="secondary">실시간 추적</button><button id="simMove" class="secondary">GPS 시뮬레이션</button></div>${state.routeError?`<div class="dangerbox" style="margin-top:12px">${h(state.routeError)}</div>`:''}<div style="margin-top:16px"><div id="map"></div></div>${state.routes.length?`<div class="grid grid3" style="margin-top:14px">${state.routes.map(routeCard).join('')}</div>`:''}</div><div class="stack"><div class="card"><h2 style="margin-top:0">선택 경로 상세</h2>${r?routeDetail(r):'<div class="mini">경로를 계산하면 안전점수 근거, 시설 개수, 단계별 안내가 표시됩니다.</div>'}</div><div class="card"><h3 style="margin-top:0">지도 범례</h3>${legendHTML()}</div></div></div>`}
+function routeCard(r){const rr=routeRisk(r), [txt,cls]=tone(100-rr.risk);return `<div class="route-card ${state.selectedRouteId===r.id?'active':''}" data-route="${r.id}"><div class="between"><div><b>${h(r.title)}</b><div class="small muted">${r.distanceText} · ${r.durationText} · ${MODE[r.mode].label}</div></div><span class="badge ${cls}">${rr.risk}점</span></div><div class="tiny muted" style="margin-top:8px">CCTV ${r.evidence.cctv} · 가로등 ${r.evidence.light} · 편의점 ${r.evidence.store} · 위험 ${r.evidence.risk}</div></div>`}
+function routeDetail(r){const rr=routeRisk(r), [txt,cls]=tone(100-rr.risk);return `<div class="between"><div><b style="font-size:18px">${h(r.title)}</b><div class="small muted">${r.distanceText} · ${r.durationText} · ${MODE[r.mode].surface}</div></div><span class="badge ${cls}">위험도 ${rr.risk}점</span></div><div style="margin:13px 0"><div class="between"><span class="small">안전 신뢰 점수</span><b>${100-rr.risk}/100</b></div><div class="progress"><span style="width:${100-rr.risk}%"></span></div></div><div class="grid grid2"><div class="mini"><b>안전시설 근거</b><br>CCTV ${r.evidence.cctv}개 · 가로등 ${r.evidence.light}개 · 편의점 ${r.evidence.store}개 · 경찰/안심시설 ${r.evidence.police}개</div><div class="mini"><b>위험요소</b><br>어두운 구간 ${r.evidence.dark}개 · 고립 위험 ${r.evidence.risk}개 · 데이터 신뢰도 ${r.evidence.confidence}</div></div><div class="info" style="margin-top:12px">${rr.reason}</div><div class="grid grid2" style="margin-top:12px"><button id="beginTrip" class="safe">이 경로로 귀가 시작</button><button id="shareRoute" class="secondary">보호자에게 공유</button></div><h3>단계별 안내</h3><div>${r.steps.map((s,i)=>`<div class="step ${state.navStepIndex===i?'active':''}"><b>${i+1}. ${h(s.instruction)}</b><br><span class="small muted">${fmtM(s.distance||0)} · ${fmtT(s.duration||60)}</span></div>`).join('')}</div>`}
+function legendHTML(){return `<div class="grid grid2"><div class="mini"><span class="facility-dot">📹</span> CCTV</div><div class="mini"><span class="facility-dot">💡</span> 가로등</div><div class="mini"><span class="facility-dot">🏪</span> 편의점</div><div class="mini"><span class="facility-dot">🚓</span> 경찰/안심시설</div><div class="mini"><span class="facility-dot">⚠️</span> 위험/어두운 구간</div><div class="mini"><span class="facility-dot">🔵</span> 현재 위치</div></div><div class="notice" style="margin-top:12px">현재 안전시설은 시연용 데이터 레이어입니다. 실제 서비스에서는 지자체 CCTV/가로등/안심시설 공공데이터로 교체해야 합니다.</div>`}
+function liveHTML(){const r=selRoute(), dev=calcDeviation();return `<div class="stack"><div class="grid grid4"><div class="stat"><span class="small muted">GPS 상태</span><strong>${state.tracking?'추적중':'대기'}</strong><span class="small muted">${state.currentLocation?`${state.currentLocation.lat.toFixed(5)}, ${state.currentLocation.lon.toFixed(5)}`:'위치 없음'}</span></div><div class="stat"><span class="small muted">정확도</span><strong>${state.locationAccuracy?Math.round(state.locationAccuracy)+'m':'-'}</strong><span class="small muted">오차 범위 표시</span></div><div class="stat"><span class="small muted">경로 이탈</span><strong>${dev?Math.round(dev)+'m':'-'}</strong><span class="small muted">80m 이상 주의</span></div><div class="stat"><span class="small muted">마지막 공유</span><strong>${state.share.lastUpdate||'-'}</strong><span class="small muted">보호자 대시보드 갱신</span></div></div><div class="two-col"><div class="card"><h2>실시간 추적 제어</h2><div class="grid grid3"><button id="startTrack2">추적 시작</button><button id="stopTrack" class="secondary">추적 중지</button><button id="simMove2" class="secondary">이동 시뮬레이션</button></div><div class="notice" style="margin-top:12px">브라우저 위치 권한을 허용해야 실제 GPS 추적이 됩니다. 발표/시연 중 권한이 막히면 시뮬레이션 버튼으로 경로 이탈·정지 감지 화면을 확인할 수 있습니다.</div></div><div class="card"><h2>이상상황 감지</h2>${anomalyHTML()}</div></div>${r?`<div class="card"><h2>현재 경로 모니터링</h2>${routeDetail(r)}</div>`:''}</div>`}
+function anomalyHTML(){const r=selRoute(), dev=calcDeviation(), issues=[]; if(!state.tracking) issues.push(['GPS 추적 꺼짐','위치가 자동 갱신되지 않습니다.','mid']); if(state.locationAccuracy&&state.locationAccuracy>80) issues.push(['GPS 오차 큼','현재 위치 정확도가 낮아 이탈 판단 신뢰도가 떨어집니다.','mid']); if(dev&&dev>80) issues.push(['경로 이탈 가능','선택 경로와 현재 위치가 멀어졌습니다.','warn']); if(!state.share.enabled) issues.push(['보호자 공유 꺼짐','귀가 중에는 공유를 켜는 것을 권장합니다.','mid']); if(!r) issues.push(['선택 경로 없음','이탈 감지와 ETA 계산을 위해 경로를 선택하세요.','mid']); if(!issues.length) issues.push(['정상 모니터링','현재 큰 이상 신호가 없습니다.','safe']); return issues.map(i=>`<div class="signal"><div><b>${i[0]}</b><br><span class="small muted">${i[1]}</span></div><span class="badge ${i[2]}">${i[2]==='warn'?'주의':'확인'}</span></div>`).join('')}
+function guardianHTML(){const token=state.share.token||makeShareToken(false);const link=location.origin+location.pathname+'?guardian='+encodeURIComponent(token);return `<div class="stack"><div class="two-col"><div class="card"><h2>보호자 공유</h2><div class="switch-row signal"><div><b>실시간 공유</b><br><span class="small muted">동의한 보호자에게 현재 위치·경로·상태만 공유</span></div><input id="shareToggle" type="checkbox" ${state.share.enabled?'checked':''} style="width:22px;height:22px"></div><div class="info" style="margin-top:12px"><b>보호자 링크</b><br><span class="small">${h(link)}</span></div><div class="grid grid2" style="margin-top:12px"><button id="copyShare" class="secondary">링크 복사</button><button id="regenToken" class="secondary">토큰 재발급</button></div></div><div class="card"><h2>보호자 대시보드 미리보기</h2>${guardianPreview()}</div></div><div class="card"><div class="between"><h2 style="margin:0">연락처 관리</h2><span class="badge">동의 필수</span></div><div id="contactsList" class="grid grid2" style="margin-top:12px">${state.contacts.map(contactCard).join('')}</div><form id="contactForm" class="grid grid4" style="margin-top:14px"><input id="cName" placeholder="이름"><input id="cRel" placeholder="관계"><input id="cPhone" placeholder="010-0000-0000"><button type="submit">추가</button></form></div></div>`}
+function contactCard(c){return `<div class="mini"><div class="between"><div><b>${h(c.name)}</b><br><span class="small muted">${h(c.relation)} · ${h(c.phone)}</span></div><button class="secondary" data-del-contact="${c.id}">삭제</button></div><label class="row small" style="margin-top:10px"><input data-contact-consent="${c.id}" type="checkbox" ${c.consent?'checked':''} style="width:18px;height:18px"> 보호자가 위치 공유에 동의함</label></div>`}
+function guardianPreview(){const r=selRoute();return `<div class="grid grid2"><div class="mini"><b>사용자 상태</b><br>${state.tracking?'귀가 중':'대기 중'}</div><div class="mini"><b>마지막 갱신</b><br>${state.share.lastUpdate||'-'}</div><div class="mini"><b>현재 위치</b><br>${state.currentLocation?state.currentLocation.lat.toFixed(5)+', '+state.currentLocation.lon.toFixed(5):'위치 없음'}</div><div class="mini"><b>선택 경로</b><br>${r?h(r.title):'미선택'}</div></div><div class="notice" style="margin-top:12px">보호자 화면은 읽기 전용으로 설계해야 하며, 실제 서비스에서는 별도 인증/만료 토큰/접속 로그가 필요합니다.</div>`}
+function sosHTML(){return `<div class="two-col"><div class="card"><h2>SOS 긴급 대응</h2><div class="dangerbox"><b>실제 위급 상황은 112 신고가 우선입니다.</b><br>아래 버튼은 오작동 방지를 위해 3초 이상 길게 눌러야 작동합니다.</div><button id="sosHold" class="hold" style="--p:${state.holdProgress}%"><span>SOS<br><small>${state.holdProgress?Math.round(state.holdProgress)+'%':'3초'}</small></span></button><div class="grid grid3"><a id="call112" href="tel:112"><button type="button" class="danger" style="width:100%">112 전화</button></a><button id="copySOS" class="secondary">문구 복사</button><button id="clearSOS" class="secondary">상태 초기화</button></div><label style="display:block;margin-top:12px">긴급 메시지</label><textarea id="sosText">${h(makeSOSMessage())}</textarea></div><div class="card"><h2>보호자 문자 전송</h2><div class="grid">${state.contacts.filter(c=>c.consent).map(c=>`<a href="sms:${h(c.phone)}?body=${encodeURIComponent(makeSOSMessage())}"><button type="button" class="secondary" style="width:100%">${h(c.name)}에게 문자 열기</button></a>`).join('')||'<div class="notice">동의된 보호자가 없습니다.</div>'}</div><h3>긴급 로그</h3><div class="grid">${state.incidents.slice(0,5).map(i=>`<div class="mini"><b>${h(i.type)}</b><br><span class="small muted">${h(i.time)} · ${h(i.message)}</span></div>`).join('')||'<div class="mini">아직 긴급 로그가 없습니다.</div>'}</div></div></div>`}
+function historyHTML(){return `<div class="card"><div class="between"><h2 style="margin:0">귀가 기록</h2><div class="row"><button id="exportData" class="secondary">내보내기</button><button id="clearHistory" class="danger">기록 삭제</button></div></div><div class="grid" style="margin-top:14px">${state.history.map(x=>`<div class="mini"><div class="between"><b>${h(x.title)}</b><span class="badge">${h(x.status)}</span></div><div class="small muted">${h(x.time)} · ${h(x.distance)} · ${h(x.duration)}</div><div class="small">위험도 ${h(x.risk)}점 · ${h(x.destination)}</div></div>`).join('')||'<div class="notice">아직 기록이 없습니다. 경로를 선택하고 귀가 시작을 누르면 기록됩니다.</div>'}</div></div>`}
+function privacyHTML(){return `<div class="stack"><div class="card"><h2>개인정보·위치정보 동의</h2><div class="grid grid2"><label class="mini"><input id="consLoc" type="checkbox" ${state.consent.location?'checked':''}> 위치정보 수집 동의<br><span class="small muted">경로 탐색, 이탈 감지, SOS 위치 문구에 사용</span></label><label class="mini"><input id="consGuard" type="checkbox" ${state.consent.guardian?'checked':''}> 보호자 공유 동의<br><span class="small muted">동의한 연락처에게만 위치 상태 공유</span></label><label class="mini"><input id="consRet" type="checkbox" ${state.consent.retention?'checked':''}> 귀가 기록 보관 동의<br><span class="small muted">보관 기간 이후 삭제 권장</span></label><label class="mini"><input id="cons3" type="checkbox" ${state.consent.thirdParty?'checked':''}> 외부 AI/서버 전송 동의<br><span class="small muted">기본 OFF. 현재 파일은 외부 ChatGPT 호출 없음</span></label></div><div class="grid grid3" style="margin-top:14px"><button id="saveConsent">동의 저장</button><button id="deleteAll" class="danger">전체 데이터 삭제</button><button id="toggleTheme" class="secondary">다크/라이트</button></div></div><div class="card"><h2>보안 설정</h2><div class="grid grid3"><div><label>기록 보관 기간</label><select id="retention"><option value="7">7일</option><option value="30">30일</option><option value="90">90일</option></select></div><label class="mini"><input id="largeText" type="checkbox" ${state.settings.largeText?'checked':''}> 큰 글자 모드</label><label class="mini"><input id="mockData" type="checkbox" ${state.settings.simulatePublicData?'checked':''}> 시연용 안전시설 데이터 표시</label></div><div class="notice" style="margin-top:12px">단일 HTML 데모에서는 완전한 서버 인증·암호화·문자 발송을 구현할 수 없습니다. 다만 실제 서비스로 넘어갈 때 필요한 동의/삭제/보관/공유 구조를 화면에 반영했습니다.</div></div></div>`}
+function auditHTML(){const rows=[['안전 데이터 부족','경로 주변 안전시설/위험요소 카운트, 지도 마커, 데이터 신뢰도 표시 추가'],['도보/차도 혼동','인도·도보는 자동차 경로로 자동 대체하지 않도록 분리'],['SOS 오해','3초 길게 누르기, 112 전화, 보호자 문자 링크, 시뮬레이션 고지 추가'],['실시간 위치 부재','watchPosition, 정확도, 이탈거리, 시뮬레이션 모드 추가'],['보호자 화면 약함','토큰 링크, 연락처 동의, 읽기전용 대시보드 구조 추가'],['개인정보 문제','동의·보관기간·내보내기·삭제·외부전송 OFF 구조 추가'],['AI 과장','AI 대신 안전 판단 엔진/규칙 기반으로 표현 조정'],['모바일 UX','하단 고정 핵심 버튼, 큰 글자/다크모드 추가']];return `<div class="card"><h2>문제점 보완 현황</h2><table class="source-table"><thead><tr><th>기존 문제</th><th>수정 방향</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td></tr>`).join('')}</tbody></table><div class="info" style="margin-top:14px"><b>남은 실제 서비스 과제</b><br>실제 공공데이터 API, 국내 보행자 네비 API, 서버 인증, 푸시/문자 발송, 법률 검토는 HTML 파일만으로 완성할 수 없으므로 백엔드 단계에서 구현해야 합니다.</div></div>`}
+function chatHTML(){return `<button id="chatFab" class="chat-fab">AI</button><section id="chatBox" class="chat ${state.chatOpen?'open':''}"><div class="chat-head"><div class="between"><div><b>안전 판단 엔진</b><div class="tiny">규칙 기반 · 외부 전송 없음</div></div><button id="chatClose" class="secondary" style="background:rgba(255,255,255,.15);color:white">×</button></div></div><div id="chatBody" class="chat-body">${state.chat.map(m=>`<div class="msg ${m.role==='me'?'me':'ai'}">${h(m.text)}</div>`).join('')}</div><div class="quick"><button data-q="현재 경로 분석">경로 분석</button><button data-q="위치 공유 켜줘">공유 켜기</button><button data-q="불안해">불안할 때</button><button data-q="SOS 문구 만들어줘">SOS 문구</button></div><form id="chatForm" class="chat-form"><input id="chatInput" placeholder="예: 이 경로 안전해? / 따라오는 것 같아"><button>전송</button></form></section>`}
+async function login(e){e.preventDefault();const email=document.getElementById('loginEmail').value.trim().toLowerCase(),pw=document.getElementById('loginPw').value;const users=load(KEYS.users,[]);const user=users.find(u=>u.email.toLowerCase()===email);const err=document.getElementById('authErr');if(!user){err.textContent='가입된 이메일이 없습니다.';err.classList.remove('hidden');return}const hh=await sha256(pw);if(user.passwordHash!==hh){err.textContent='비밀번호가 맞지 않습니다.';err.classList.remove('hidden');return}save(KEYS.session,{userId:user.id,loginAt:now()});state.user=user;render()}
+async function signup(e){e.preventDefault();const name=document.getElementById('sgName').value.trim(),email=document.getElementById('sgEmail').value.trim().toLowerCase(),pw=document.getElementById('sgPw').value;if(!name||!email.includes('@')||pw.length<4){alert('이름, 이메일, 비밀번호를 확인하세요.');return}const users=load(KEYS.users,[]);if(users.some(u=>u.email===email)){alert('이미 가입된 이메일입니다.');return}const user={id:uid('u'),name,email,passwordHash:await sha256(pw),role:'사용자',createdAt:now()};users.push(user);save(KEYS.users,users);save(KEYS.session,{userId:user.id,loginAt:now()});state.user=user;render()}
+function bind(){if(!state.user){document.getElementById('loginForm')?.addEventListener('submit',login);document.getElementById('signupForm')?.addEventListener('submit',signup);return}document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>setState({tab:b.dataset.nav}));document.getElementById('logout')?.addEventListener('click',()=>{localStorage.removeItem(KEYS.session);state.user=null;render()});document.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>{state.destText=b.dataset.fav;state.tab='route';render();setTimeout(findRoute,100)});['barHome','barShare','barSOS'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>setState({tab:id==='barHome'?'home':id==='barShare'?'guardian':'sos'})));document.getElementById('findRoute')?.addEventListener('click',findRoute);document.getElementById('useGPS')?.addEventListener('click',requestLocation);document.getElementById('startTrack')?.addEventListener('click',startWatch);document.getElementById('startTrack2')?.addEventListener('click',startWatch);document.getElementById('stopTrack')?.addEventListener('click',stopWatch);document.getElementById('simMove')?.addEventListener('click',toggleSim);document.getElementById('simMove2')?.addEventListener('click',toggleSim);document.getElementById('modeSelect')?.addEventListener('change',e=>setState({mode:e.target.value,routes:[],selectedRouteId:null}));document.querySelectorAll('[data-route]').forEach(el=>el.onclick=()=>setState({selectedRouteId:el.dataset.route,navStepIndex:0}));document.getElementById('beginTrip')?.addEventListener('click',beginTrip);document.getElementById('shareRoute')?.addEventListener('click',()=>{state.tab='guardian';state.share.enabled=true;state.share.lastUpdate=now();save(KEYS.share,state.share);render()});document.getElementById('shareToggle')?.addEventListener('change',e=>{state.share.enabled=e.target.checked;if(state.share.enabled&&!state.share.token)state.share.token=makeShareToken(false);state.share.lastUpdate=now();save(KEYS.share,state.share);render()});document.getElementById('copyShare')?.addEventListener('click',copyShare);document.getElementById('regenToken')?.addEventListener('click',()=>{state.share.token=makeShareToken(false);save(KEYS.share,state.share);render()});document.getElementById('contactForm')?.addEventListener('submit',addContact);document.querySelectorAll('[data-del-contact]').forEach(b=>b.onclick=()=>deleteContact(b.dataset.delContact));document.querySelectorAll('[data-contact-consent]').forEach(c=>c.onchange=()=>updateContactConsent(c.dataset.contactConsent,c.checked));bindSOS();document.getElementById('copySOS')?.addEventListener('click',()=>copyText(document.getElementById('sosText')?.value||makeSOSMessage()));document.getElementById('clearSOS')?.addEventListener('click',()=>{state.holdProgress=0;render()});document.getElementById('saveConsent')?.addEventListener('click',saveConsent);document.getElementById('deleteAll')?.addEventListener('click',deleteAllData);document.getElementById('toggleTheme')?.addEventListener('click',toggleTheme);document.getElementById('largeText')?.addEventListener('change',e=>{state.settings.largeText=e.target.checked;save(KEYS.settings,state.settings);document.body.classList.toggle('large',e.target.checked);render()});document.getElementById('mockData')?.addEventListener('change',e=>{state.settings.simulatePublicData=e.target.checked;save(KEYS.settings,state.settings);renderMap()});const ret=document.getElementById('retention');if(ret){ret.value=state.settings.retentionDays||30;ret.onchange=e=>{state.settings.retentionDays=Number(e.target.value);save(KEYS.settings,state.settings)}}document.getElementById('exportData')?.addEventListener('click',exportData);document.getElementById('clearHistory')?.addEventListener('click',()=>{if(confirm('귀가 기록을 삭제할까요?')){state.history=[];save(KEYS.history,[]);render()}});bindChat();if(state.tab==='route') setTimeout(setupMap,0)}
+function bindChat(){document.getElementById('chatFab')?.addEventListener('click',()=>setState({chatOpen:!state.chatOpen}));document.getElementById('chatClose')?.addEventListener('click',()=>setState({chatOpen:false}));document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));document.getElementById('chatForm')?.addEventListener('submit',e=>{e.preventDefault();const v=document.getElementById('chatInput').value.trim();if(v)sendChat(v)});const body=document.getElementById('chatBody');if(body)body.scrollTop=body.scrollHeight}
+function sendChat(text){state.chat.push({role:'me',text});state.chat.push({role:'ai',text:localReply(text)});state.chatOpen=true;render()}
+function localReply(t){const route=selRoute(), low=t.toLowerCase();if(low.includes('공유')&&low.includes('켜')){state.share.enabled=true;if(!state.share.token)state.share.token=makeShareToken(false);state.share.lastUpdate=now();save(KEYS.share,state.share);return '위치 공유를 켰습니다. 동의된 보호자에게 현재 상태를 공유하는 흐름으로 전환했습니다.'}if(low.includes('sos'))return makeSOSMessage();if(low.includes('불안')||low.includes('무서')||low.includes('따라'))return '지금은 휴대폰만 보지 말고 주변 밝은 장소로 이동하세요. 가까운 편의점·상가·지구대 방향을 우선하고, 실제 위급하면 112에 바로 전화하세요. 이 앱에서는 SOS 탭에서 보호자 문자와 112 전화를 열 수 있습니다.';if(route){const rr=routeRisk(route);return `${route.title} 분석입니다. 위험도 ${rr.risk}점, 안전시설은 CCTV ${route.evidence.cctv}개, 가로등 ${route.evidence.light}개, 편의점 ${route.evidence.store}개, 위험요소 ${route.evidence.risk}개로 계산했습니다. ${rr.reason}`}return '아직 선택된 경로가 없습니다. 안전 경로 탭에서 출발지와 목적지를 입력하면 안전근거 기반으로 분석합니다.'}
+function setupMap(){if(!window.L)return;const el=document.getElementById('map');if(!el)return;if(state.map){state.map.remove();state.map=null}state.map=L.map('map').setView([DEFAULT_CENTER.lat,DEFAULT_CENTER.lon],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(state.map);renderMap()}
+function renderMap(){if(!state.map)return;state.markers.forEach(m=>m.remove());state.routeLines.forEach(l=>l.remove());state.markers=[];state.routeLines=[];const colors=['#16a34a','#2563eb','#dc2626'];state.routes.forEach((r,i)=>{const line=L.polyline(r.geometry.map(p=>[p.lat,p.lon]),{color:colors[i%3],weight:state.selectedRouteId===r.id?8:5,opacity:.85,dashArray:r.mode==='sidewalk'?'8 6':null}).addTo(state.map).bindPopup(`${r.title}<br>위험도 ${routeRisk(r).risk}점`);state.routeLines.push(line)});const r=selRoute();if(r&&state.settings.simulatePublicData){r.facilities.forEach(f=>{const icon=L.divIcon({className:'facility-dot',html:f.icon,iconSize:[22,22]});state.markers.push(L.marker([f.lat,f.lon],{icon}).addTo(state.map).bindPopup(`${f.label}<br>${f.demo?'시연 데이터':'공공데이터'}`))})}if(state.currentLocation){state.markers.push(L.circleMarker([state.currentLocation.lat,state.currentLocation.lon],{radius:9,color:'#2563eb',fillColor:'#60a5fa',fillOpacity:.75}).addTo(state.map).bindPopup(`현재 위치<br>오차 ${Math.round(state.locationAccuracy||0)}m`));if(state.locationAccuracy)state.markers.push(L.circle([state.currentLocation.lat,state.currentLocation.lon],{radius:state.locationAccuracy,color:'#93c5fd',fillOpacity:.08}).addTo(state.map))}const all=[];state.routes.forEach(r=>all.push(...r.geometry.map(p=>[p.lat,p.lon])));if(state.currentLocation)all.push([state.currentLocation.lat,state.currentLocation.lon]);if(all.length)state.map.fitBounds(all,{padding:[30,30]})}
+async function requestLocation(){if(!navigator.geolocation){alert('이 브라우저는 위치정보를 지원하지 않습니다.');return}if(!state.consent.location){alert('보안/동의 탭에서 위치정보 수집 동의를 먼저 켜주세요.');setState({tab:'privacy'});return}navigator.geolocation.getCurrentPosition(pos=>{state.currentLocation={lat:pos.coords.latitude,lon:pos.coords.longitude};state.locationAccuracy=pos.coords.accuracy;state.share.lastUpdate=now();save(KEYS.share,state.share);render();},err=>alert('위치 권한을 허용하지 않았거나 위치를 가져오지 못했습니다: '+err.message),{enableHighAccuracy:true,timeout:10000,maximumAge:3000})}
+function startWatch(){if(!navigator.geolocation){alert('이 브라우저는 위치정보를 지원하지 않습니다.');return}if(!state.consent.location){alert('위치정보 동의가 필요합니다.');setState({tab:'privacy'});return}if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=navigator.geolocation.watchPosition(pos=>{state.currentLocation={lat:pos.coords.latitude,lon:pos.coords.longitude};state.locationAccuracy=pos.coords.accuracy;state.tracking=true;state.share.lastUpdate=now();save(KEYS.share,state.share);render();},{enableHighAccuracy:true,timeout:12000,maximumAge:2000});state.tracking=true;render()}
+function stopWatch(){if(state.watchId)navigator.geolocation.clearWatch(state.watchId);state.watchId=null;state.tracking=false;if(state.simTimer){clearInterval(state.simTimer);state.simTimer=null}render()}
+function toggleSim(){const r=selRoute();if(!r){alert('먼저 경로를 계산하고 선택하세요.');return}if(state.simTimer){clearInterval(state.simTimer);state.simTimer=null;state.tracking=false;render();return}state.simIndex=0;state.tracking=true;state.simTimer=setInterval(()=>{const pts=r.geometry;state.simIndex=Math.min(pts.length-1,state.simIndex+Math.max(1,Math.floor(pts.length/18)));const p=pts[state.simIndex];state.currentLocation={lat:p.lat,lon:p.lon};state.locationAccuracy=18+Math.round(Math.random()*18);state.share.lastUpdate=now();if(state.simIndex>=pts.length-1){clearInterval(state.simTimer);state.simTimer=null;state.tracking=false}save(KEYS.share,state.share);render()},1300);render()}
+async function findRoute(){const origin=document.getElementById('originText')?.value.trim()??state.originText,dest=document.getElementById('destText')?.value.trim()||state.destText,mode=document.getElementById('modeSelect')?.value||state.mode;state.originText=origin;state.destText=dest;state.mode=mode;state.loading=true;state.routeError='';render();try{const start=origin?await geocode(origin):(state.currentLocation?{...state.currentLocation,label:'현재 위치'}:DEFAULT_CENTER);const end=await geocode(dest);const data=await fetchRoute(start,end,mode);state.routes=buildRoutes(data.routes,mode,data.fallback,start,end);state.selectedRouteId=state.routes[0]?.id||null;state.loading=false;render();}catch(e){state.loading=false;state.routeError=e.message;render()}}
+async function geocode(q){const local=SAMPLE_PLACES.find(p=>p.name.replace(/\s/g,'').includes(q.replace(/\s/g,''))||q.replace(/\s/g,'').includes(p.name.replace(/\s/g,'')));if(local)return {...local,label:local.name};const params=new URLSearchParams({format:'jsonv2',addressdetails:'1',countrycodes:'kr',limit:'1',q});const res=await fetch('https://nominatim.openstreetmap.org/search?'+params.toString(),{headers:{Accept:'application/json'}});if(!res.ok)throw new Error('장소 검색 서버에 연결하지 못했습니다. 정확한 주소를 입력하거나 잠시 후 다시 시도하세요.');const arr=await res.json();if(!arr?.length)throw new Error('장소 검색 결과가 없습니다. 예: 대전광역시청, 대전역처럼 더 구체적으로 입력하세요.');return {lat:Number(arr[0].lat),lon:Number(arr[0].lon),label:arr[0].display_name}}
+async function fetchRoute(start,end,mode){let lastErr=null;for(const profile of (MODE[mode].profiles||[MODE[mode].profile])){try{const url=`https://router.project-osrm.org/route/v1/${profile}/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=polyline&alternatives=true&steps=true`;const res=await fetch(url);if(!res.ok)throw new Error('경로 API 실패');const data=await res.json();if(!data.routes?.length)throw new Error('해당 이동 기준의 경로를 찾지 못했습니다.');return {routes:data.routes,fallback:false,usedProfile:profile}}catch(e){lastErr=e}}if(mode==='car')throw new Error('자동차 경로 계산에 실패했습니다. 네트워크 또는 지도 API 상태를 확인하세요.');return {routes:[straightRoute(start,end,mode)],fallback:true,usedProfile:'emergency-straight'}}
+function straightRoute(start,end,mode){const d=haversine(start,end);return {distance:d,duration:d/MODE[mode].speed,geometry:encodePseudo([start,end]),legs:[{steps:[{distance:d,duration:d/MODE[mode].speed,name:'비상 직선 안내',maneuver:{type:'continue'},geometry:encodePseudo([start,end])}]}],fallback:true}}
+function encodePseudo(points){return points.map(p=>({lat:p.lat,lon:p.lon}))}
+function buildRoutes(rawRoutes,mode,fallback,start,end){const mapped=rawRoutes.slice(0,3).map((raw,i)=>{const geometry=Array.isArray(raw.geometry)?raw.geometry:decodePolyline(raw.geometry).map(p=>({lat:p[0],lon:p[1]}));const duration=mode==='car'?raw.duration:Math.max(60,raw.distance/MODE[mode].speed);const steps=(raw.legs?.[0]?.steps||[]).slice(0,10).map(s=>({instruction:stepText(s,mode),distance:s.distance,duration:mode==='car'?s.duration:Math.max(30,s.distance/MODE[mode].speed)}));if(!steps.length)steps.push({instruction:'경로를 따라 밝고 사람이 있는 구간을 우선해 이동하세요.',distance:raw.distance,duration});const facilities=buildFacilities(geometry);const evidence=countEvidence(geometry,facilities);return {id:uid('r'),title:i===0?'안전 우선 경로':i===1?'균형 경로':'시간 우선 경로',mode,geometry,distance:raw.distance,distanceText:fmtM(raw.distance),duration,durationText:fmtT(duration),steps,facilities,evidence,fallback:fallback||raw.fallback}});return mapped.sort((a,b)=>routeRisk(a).risk-routeRisk(b).risk)}
+function stepText(s,mode){const name=s.name?` ${s.name}`:'';const m=s.maneuver?.modifier||'',type=s.maneuver?.type||'';const base=mode==='car'?'차도 기준':'보행 기준';let action='직진';if(m.includes('right'))action='오른쪽';if(m.includes('left'))action='왼쪽';if(type==='depart')action='출발';if(type==='arrive')action='도착';return `${base} · ${action}${name}`}
+function decodePolyline(str){let index=0,lat=0,lng=0,coords=[];while(index<str.length){let b,shift=0,result=0;do{b=str.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);lat+=result&1?~(result>>1):result>>1;shift=0;result=0;do{b=str.charCodeAt(index++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);lng+=result&1?~(result>>1):result>>1;coords.push([lat/1e5,lng/1e5])}return coords}
+function haversine(a,b){const R=6371000,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180,lat1=a.lat*Math.PI/180,lat2=b.lat*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function buildFacilities(geom){const icons={cctv:'📹',light:'💡',store:'🏪',police:'🚓',risk:'⚠️',dark:'🌑'};const labels={cctv:'CCTV',light:'가로등',store:'편의점',police:'경찰/안심시설',risk:'고립 위험',dark:'어두운 구간'};const types=['light','cctv','store','light','police','dark','cctv','risk','light','store'];const fs=[];for(let i=1;i<Math.min(geom.length,28);i+=Math.max(1,Math.floor(geom.length/12))){const p=geom[i];for(let j=0;j<2;j++){const t=types[(i+j)%types.length];const off=(j?1:-1)*(0.00025+((i%3)*0.00008));fs.push({id:uid('f'),type:t,icon:icons[t],label:labels[t],lat:p.lat+off,lon:p.lon-off/2,demo:true})}}return fs}
+function countEvidence(geom,fs){const ev={cctv:0,light:0,store:0,police:0,risk:0,dark:0,confidence:'시연 데이터'};fs.forEach(f=>{const d=minDistToRoute({lat:f.lat,lon:f.lon},geom);if(d<95&&ev[f.type]!=null)ev[f.type]++});return ev}
+function routeRisk(r){let risk=52;const e=r.evidence;risk-=e.light*2.5+e.cctv*3+e.store*2+e.police*4;risk+=e.risk*7+e.dark*5;if(r.mode==='car')risk+=4;if(r.mode==='sidewalk')risk-=6;if(r.fallback)risk+=18;if(r.distance>2500)risk+=5;if(!state.share.enabled)risk+=5;if(!state.consent.location)risk+=5;risk=Math.round(Math.max(12,Math.min(92,risk)));const label=risk>=70?'위험':risk>=50?'주의':risk>=35?'보통':'낮음';const reason=r.fallback?'보행 경로 API 실패로 비상 직선 안내를 사용했습니다. 실제 이동 전 다른 지도앱 확인이 필요합니다.':`안전시설 ${e.cctv+e.light+e.store+e.police}개, 위험요소 ${e.risk+e.dark}개를 반영했습니다.`;return {risk,label,reason}}
+function selRoute(){return state.routes.find(r=>r.id===state.selectedRouteId)||null}
+function calcDeviation(){const r=selRoute();if(!r||!state.currentLocation)return null;return minDistToRoute(state.currentLocation,r.geometry)}
+function deviationText(){const d=calcDeviation();return d?Math.round(d)+'m':'-'}
+function minDistToRoute(p,geom){if(!geom?.length)return Infinity;let best=Infinity;for(let i=0;i<geom.length-1;i++){best=Math.min(best,pointSegDist(p,geom[i],geom[i+1]))}return best}
+function pointSegDist(p,a,b){const x=p.lon,y=p.lat,x1=a.lon,y1=a.lat,x2=b.lon,y2=b.lat;const A=x-x1,B=y-y1,C=x2-x1,D=y2-y1;let t=(A*C+B*D)/(C*C+D*D||1);t=Math.max(0,Math.min(1,t));return haversine(p,{lat:y1+D*t,lon:x1+C*t})}
+function beginTrip(){const r=selRoute();if(!r)return;state.tracking=true;state.share.enabled=true;if(!state.share.token)state.share.token=makeShareToken(false);state.share.lastUpdate=now();state.history.unshift({id:uid('h'),title:r.title,status:'귀가 시작',time:now(),distance:r.distanceText,duration:r.durationText,risk:routeRisk(r).risk,destination:state.destText});save(KEYS.history,state.history);save(KEYS.share,state.share);render()}
+function makeShareToken(saveIt=true){const t=uid('share');if(saveIt){state.share.token=t;save(KEYS.share,state.share)}return t}
+function copyShare(){const token=state.share.token||makeShareToken(false);copyText(location.origin+location.pathname+'?guardian='+encodeURIComponent(token))}
+function copyText(text){navigator.clipboard?.writeText(text).then(()=>alert('복사했습니다.')).catch(()=>prompt('복사하세요',text))}
+function addContact(e){e.preventDefault();const name=cName.value.trim(),relation=cRel.value.trim(),phone=cPhone.value.trim();if(!name||!phone){alert('이름과 전화번호를 입력하세요.');return}state.contacts.push({id:uid('c'),name,relation,phone,consent:false,priority:state.contacts.length+1});save(KEYS.contacts,state.contacts);render()}
+function deleteContact(id){state.contacts=state.contacts.filter(c=>c.id!==id);save(KEYS.contacts,state.contacts);render()} function updateContactConsent(id,val){state.contacts=state.contacts.map(c=>c.id===id?{...c,consent:val}:c);save(KEYS.contacts,state.contacts);render()}
+let holdTimer=null,holdStart=0;function bindSOS(){const btn=document.getElementById('sosHold');if(!btn)return;const start=()=>{holdStart=Date.now();holdTimer=setInterval(()=>{state.holdProgress=Math.min(100,(Date.now()-holdStart)/30);btn.style.setProperty('--p',state.holdProgress+'%');btn.querySelector('small').textContent=Math.round(state.holdProgress)+'%';if(state.holdProgress>=100){clearInterval(holdTimer);triggerSOS()}},80)};const stop=()=>{if(holdTimer)clearInterval(holdTimer);if(state.holdProgress<100){state.holdProgress=0;btn.style.setProperty('--p','0%');btn.querySelector('small').textContent='3초'}};btn.addEventListener('mousedown',start);btn.addEventListener('touchstart',e=>{e.preventDefault();start()},{passive:false});['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>btn.addEventListener(ev,stop))}
+function makeSOSMessage(){const loc=state.currentLocation?`현재 위치: ${state.currentLocation.lat.toFixed(6)}, ${state.currentLocation.lon.toFixed(6)}`:'현재 위치: 아직 확인되지 않음';const r=selRoute();return `긴급 상황입니다. 확인 후 연락 부탁드립니다. ${loc}. 선택 경로: ${r?r.title:'없음'}. 시간: ${now()}. 실제 위급 시 112 신고가 필요합니다.`}
+function triggerSOS(){const msg=makeSOSMessage();state.incidents.unshift({id:uid('sos'),type:'SOS 길게 누름',time:now(),message:msg});save(KEYS.incidents,state.incidents);state.holdProgress=100;alert('SOS 상태가 기록되었습니다. 실제 위급하면 112 전화 버튼을 누르세요.');render()}
+function saveConsent(){state.consent={location:consLoc.checked,guardian:consGuard.checked,retention:consRet.checked,thirdParty:cons3.checked,updatedAt:now()};save(KEYS.consent,state.consent);alert('동의를 저장했습니다.');render()}
+function deleteAllData(){if(!confirm('로그인 정보 외 연락처, 기록, 공유, 동의 데이터를 삭제할까요?'))return;[KEYS.contacts,KEYS.favorites,KEYS.history,KEYS.consent,KEYS.share,KEYS.incidents].forEach(k=>localStorage.removeItem(k));init()}
+function toggleTheme(){state.settings.theme=(state.settings.theme==='dark'?'light':'dark');save(KEYS.settings,state.settings);document.documentElement.dataset.theme=state.settings.theme;render()}
+function exportData(){const data={contacts:state.contacts,history:state.history,incidents:state.incidents,consent:state.consent,share:state.share};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='night-safety-export.json';a.click();URL.revokeObjectURL(a.href)}
+document.addEventListener('DOMContentLoaded',()=>{init();document.addEventListener('click',e=>{});});
+function render(){const app=document.getElementById('app');app.innerHTML=state.user?appHTML():authHTML();document.getElementById('mobileBar')?.classList.toggle('hidden',!state.user);bind();if(state.user&&state.tab==='route')setTimeout(renderMap,20)}
+</script>
+</body>
+</html>
